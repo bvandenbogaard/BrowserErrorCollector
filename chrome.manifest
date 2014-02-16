@@ -1,0 +1,2 @@
+content	BrowserErrorCollector	content/
+overlay chrome://browser/content/browser.xul  chrome://BrowserErrorCollector/content/overlay.xul
