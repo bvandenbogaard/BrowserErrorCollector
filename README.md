@@ -1,10 +1,8 @@
-BrowserErrorCollector
-=====================
+# BrowserErrorCollector
 
 Collect runtime Javascript and Network errors during Selenium tests. Currently only supports Firefox. Usable for all developing languages that support Selenium WebDriver.
 
-Usage
-=====
+## Usage
 
 1. Add the xpi file to Firefox profile during initialisation of your test suite
 2. Let your tests run
@@ -12,7 +10,6 @@ Usage
         `return BrowserErrorCollector.collectedErrors.pump();`
 4. Parse the list and handle the results
 	
-Thanks
-======
+## Thanks
 
 Thanks to mguillem for creating JSErrorCollector. This project is very much based on JSErrorCollector (https://github.com/mguillem/JSErrorCollector).
