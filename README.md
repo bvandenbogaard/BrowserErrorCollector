@@ -8,7 +8,7 @@ This could also work on other frameworks that allow JavaScript structures to be 
 1. Add the xpi file to Firefox profile during initialisation of your test suite
 2. Let your tests run
 3. At the end check for errors by executing Javascript in the browser through Selenium WebDriver:
-        `return BrowserErrorCollector.pump();`
+        `return JSON.parse(BrowserErrorCollector.list);`
 4. Parse the list and handle the results
 
 ## Error reporting structure
