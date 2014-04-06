@@ -1,31 +1,23 @@
 var BrowserErrorCollector = {
     observerService: null,
     consoleService: null,
+    errorList: [],
     collectedErrors: {
-        list: [],
-        push: function(error) {
-            this.list[this.list.length] = error;
-        },
-        pump: function() {
-            var resp = [];
-            for (var i = 0; i < this.list.length; ++i) {
-                resp[i] = this.list[i];
-            }
-            this.clear();
-
-            return resp;
-        },
-        toString: function() {
-            var s = "";
-            for (var i = 0; i < this.list.length; ++i) {
-                s += i + ": " + this.list[i] + "\n";
-            }
-            return s;
-        },
+        list: '[]',
+        cleared: false,
+        pump: function() {            
+            return JSON.parse(this.list);
+        },        
         clear: function() {
-            this.list = [];
+            this.list = '[]';
+            this.cleared = true;
         },
-        __exposedProps__: {pump: "r"}
+        __exposedProps__: {
+            list: "r",
+            pump: "r",
+            clear: "r",
+            cleared: "rw"
+        }
     },
     onLoad: function(event) {
         this.initialize();
@@ -72,22 +64,46 @@ var BrowserErrorCollector = {
         this.consoleService = null;
     },
     onBrowserPageLoad: function(event) {
-        var doc = event.originalTarget;
-        var win = doc.defaultView;
-        if (win) {
-            win.wrappedJSObject.BrowserErrorCollector_errors = BrowserErrorCollector.collectedErrors;
+        var browser = window.getBrowser();
+        if (browser) {
+            var contentWindow = browser.selectedBrowser.contentWindow;
+            if (contentWindow) {
+                if (contentWindow.wrappedJSObject.BrowserErrorCollector_errors && contentWindow.wrappedJSObject.BrowserErrorCollector_errors.cleared) {
+                    this.clearErrors();
+                    BrowserErrorCollector.collectedErrors.cleared = false;
+                    contentWindow.wrappedJSObject.BrowserErrorCollector_errors.cleared = false;
+                    console.log("Cleared errors after reload");
+                }
+                
+                contentWindow.wrappedJSObject.BrowserErrorCollector_errors = BrowserErrorCollector.collectedErrors;
+                contentWindow.wrappedJSObject.BrowserErrorCollector_errors.list = JSON.stringify(BrowserErrorCollector.errorList);
+            }
         }
     },
     addError: function(error) {
-        this.collectedErrors.push(error);
+        this.errorList.push(error);
 
         var labelField = document.getElementById("BrowserErrorCollector-nb");
         labelField.nb = labelField.nb || 0;
         labelField.nb++;
         labelField.value = labelField.nb;
+        
+        var browser = window.getBrowser();
+        if (browser) {
+            var contentWindow = browser.selectedBrowser.contentWindow;
+            if (contentWindow) {
+                if (contentWindow.wrappedJSObject.BrowserErrorCollector_errors.cleared) {
+                    contentWindow.wrappedJSObject.BrowserErrorCollector_errors.cleared = false;
+                    this.clearErrors();
+                    this.errorList = [ error ];
+                    console.log("Cleared errors after clear");
+                }
+                contentWindow.wrappedJSObject.BrowserErrorCollector_errors.list = JSON.stringify(this.errorList);
+            }
+        }   
     },
     clearErrors: function() {
-        this.collectedErrors.clear();
+        this.errorList.clear();
 
         var labelField = document.getElementById("BrowserErrorCollector-nb");
         labelField.nb = 0;
@@ -102,10 +118,9 @@ var BrowserErrorCollector = {
                             responseStatus: httpChannel.responseStatus,
                             responseStatusText: httpChannel.responseStatusText,
                             requestMethod: httpChannel.requestMethod,
-                            spec: httpChannel.spec,
-                            referrer: httpChannel.referrer,
-                            httpChannel: httpChannel
-                        }
+                            URI: httpChannel.URI.spec,
+                            referrer: httpChannel.referrer
+                        }                                
                 );
             }
         },
@@ -117,9 +132,8 @@ var BrowserErrorCollector = {
                             responseStatus: httpChannel.responseStatus,
                             responseStatusText: httpChannel.responseStatusText,
                             requestMethod: httpChannel.requestMethod,
-                            spec: httpChannel.spec,
-                            referrer: httpChannel.referrer,
-                            httpChannel: httpChannel
+                            URI: httpChannel.URI.spec,
+                            referrer: httpChannel.referrer
                         }
                 );
             }
@@ -182,8 +196,7 @@ var BrowserErrorCollector = {
                                 type: "JavaScript",
                                 errorMessage: scriptError.errorMessage,
                                 sourceName: scriptError.sourceName,
-                                lineNumber: scriptError.lineNumber,
-                                console: console
+                                lineNumber: scriptError.lineNumber
                             }
                         );
                     }
