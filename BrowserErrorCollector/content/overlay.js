@@ -80,12 +80,12 @@ var BrowserErrorCollector = {
       if (!httpChannel.requestSucceeded && httpChannel.responseStatus >= 400) {
         BrowserErrorCollector.updateError(
                 {
-                  type: "HTTP Request",
+                  type: "HTTP Request",                  
                   responseStatus: httpChannel.responseStatus,
                   responseStatusText: httpChannel.responseStatusText,
                   requestMethod: httpChannel.requestMethod,
                   URI: httpChannel.URI.spec,
-                  referrer: httpChannel.referrer
+                  referrer: httpChannel.referrer.spec
                 }
         );
       }
@@ -144,7 +144,8 @@ var BrowserErrorCollector = {
                       type: "JavaScript",
                       errorMessage: scriptError.errorMessage,
                       sourceName: scriptError.sourceName,
-                      lineNumber: scriptError.lineNumber
+                      lineNumber: scriptError.lineNumber,
+                      URI: window.content.location.href
                     }
             );
           }
