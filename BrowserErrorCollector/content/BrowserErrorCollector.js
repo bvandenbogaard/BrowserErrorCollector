@@ -3,42 +3,43 @@ var BrowserErrorCollector = {
   consoleService: null,
   errorList: [],
   collectedErrors: {
-    list: "[]",
+    list: '[]',
     __exposedProps__: {
-      list: "rw"
+      list: 'rw'
     }
   },
-  onLoad: function(event) {
+  onLoad: function() {
     this.initialize();
     
-    var windowContent = window.getBrowser();
-    windowContent.addEventListener("load", this.onBrowserPageLoad, true);
+    gBrowser.addEventListener('load', this.onContentLoad, true);
   },
-  onUnLoad: function(event) {
-    // initialization code
-    var windowContent = window.getBrowser();
-    windowContent.removeEventListener("load", this.onBrowserPageLoad, true);
+  onUnLoad: function() {
+    gBrowser.removeEventListener('load', this.onContentLoad, true);
+    
+    this.dispose();
   },
   initialize: function() {
-    this.observerService = Components.classes["@mozilla.org/observer-service;1"].getService(Components.interfaces.nsIObserverService);
+    console.log('BrowserErrorCollector initializing');
+    this.observerService = Components.classes['@mozilla.org/observer-service;1'].getService(Components.interfaces.nsIObserverService);
 
     if (this.observerService)
     {
-      this.observerService.addObserver(this.NetErrorListener, "http-on-examine-response", false);
-      this.observerService.addObserver(this.NetErrorListener, "http-on-examine-merged-response", false);
+      this.observerService.addObserver(this.NetErrorListener, 'http-on-examine-response', false);
     }
 
-    this.consoleService = Components.classes["@mozilla.org/consoleservice;1"].getService().QueryInterface(Components.interfaces.nsIConsoleService);
+    this.consoleService = Components.classes['@mozilla.org/consoleservice;1'].getService().QueryInterface(Components.interfaces.nsIConsoleService);
     if (this.consoleService)
     {
       this.consoleService.registerListener(this.JSErrorListener);
     }
+
+    console.log('BrowserErrorCollector initialized');
   },
   dispose: function() {
+    console.log('BrowserErrorCollector disposing');
     if (this.observerService)
     {
-      this.observerService.removeObserver(this.NetErrorListener, "http-on-examine-response", false);
-      this.observerService.removeObserver(this.NetErrorListener, "http-on-examine-merged-response", false);
+      this.observerService.removeObserver(this.NetErrorListener, 'http-on-examine-response', false);
     }
 
     if (this.consoleService)
@@ -49,38 +50,33 @@ var BrowserErrorCollector = {
     this.observerService = null;
     this.consoleService = null;
   },
-  onBrowserPageLoad: function(event) {
-    var browser = window.getBrowser();
-    if (browser) {
-      var contentWindow = browser.selectedBrowser.contentWindow;
-      if (contentWindow && !contentWindow.wrappedJSObject.BrowserErrorCollector) {
-        contentWindow.wrappedJSObject.BrowserErrorCollector = this.collectedErrors;
-      }
+  onContentLoad: function(event) {
+    var doc = event.originalTarget;
+      
+    if (doc instanceof HTMLDocument) {
+        if (doc.defaultView.frameElement) {
+            if (window.content && !window.content.wrappedJSObject.BrowserErrorCollector) {
+                console.log('New page loaded, initializing error list');
+                window.content.wrappedJSObject.BrowserErrorCollector = this.collectedErrors;
+            }
+        }
     }
   },
   updateError: function(error) {
-    var browser = window.getBrowser();
-    if (browser) {
-      var contentWindow = browser.selectedBrowser.contentWindow;
-      if (contentWindow) {
-        if (error) {
-          this.errorList.push(error);
-        }
-        contentWindow.wrappedJSObject.BrowserErrorCollector = this.collectedErrors;
-        contentWindow.wrappedJSObject.BrowserErrorCollector.list = JSON.stringify(this.errorList);
+    if (window.content) {
+      if (error) {
+        this.errorList.push(error);
       }
+      window.content.wrappedJSObject.BrowserErrorCollector = this.collectedErrors;
+      window.content.wrappedJSObject.BrowserErrorCollector.list = JSON.stringify(this.errorList);
     }
-
-    var labelField = document.getElementById("BrowserErrorCollector-nb");
-    labelField.nb = this.errorList.length;
-    labelField.value = labelField.nb;
   },
   NetErrorListener: {
     onExamineResponse: function(httpChannel) {
       if (!httpChannel.requestSucceeded && httpChannel.responseStatus >= 400) {
         BrowserErrorCollector.updateError(
                 {
-                  type: "HTTP Request",                  
+                  type: 'HTTP Request',                  
                   responseStatus: httpChannel.responseStatus,
                   responseStatusText: httpChannel.responseStatusText,
                   requestMethod: httpChannel.requestMethod,
@@ -111,19 +107,19 @@ var BrowserErrorCollector = {
 
           var errorCategory = scriptError.category;
           var sourceName = scriptError.sourceName;
-          if (sourceName.indexOf("about:") === 0 || sourceName.indexOf("chrome:") === 0) {
+          if (sourceName.indexOf('about:') === 0 || sourceName.indexOf('chrome:') === 0) {
             return; // not interested in internal errors
           }
 
           // We're just looking for content JS errors (see https://developer.mozilla.org/en/XPCOM_Interface_Reference/nsIScriptError#Categories)
-          if (errorCategory === "content javascript")
+          if (errorCategory === 'content javascript')
           {
             var fireBugConsole = null;
             // try to get content from Firebug's console if it exists
             try {
               if (window.Firebug && window.Firebug.currentContext) {
-                var doc = Firebug.currentContext.getPanel("console").document;
-                var logNodes = doc.querySelectorAll(".logRow > span");
+                var doc = Firebug.currentContext.getPanel('console').document;
+                var logNodes = doc.querySelectorAll('.logRow > span');
                 var consoleLines = [];
                 for (var i = 0; i < logNodes.length; ++i) {
                   var logNode = logNodes[i];
@@ -133,15 +129,15 @@ var BrowserErrorCollector = {
                   }
                 }
 
-                fireBugConsole = consoleLines.join("\n");
+                fireBugConsole = consoleLines.join('\n');
               }
             } catch (e) {
-              fireBugConsole = "Error extracting content of Firebug console: " + e.message;
+              fireBugConsole = 'Error extracting content of Firebug console: ' + e.message;
             }
           
             BrowserErrorCollector.updateError(
                     {
-                      type: "JavaScript",
+                      type: 'JavaScript',
                       errorMessage: scriptError.errorMessage,
                       sourceName: scriptError.sourceName,
                       lineNumber: scriptError.lineNumber,
@@ -161,10 +157,10 @@ var BrowserErrorCollector = {
   }
 };
 
-window.addEventListener("load", function(e) {
+window.addEventListener('load', function(e) {
   BrowserErrorCollector.onLoad(e);
 }, false);
 
-window.addEventListener("unload", function(e) {
+window.addEventListener('unload', function(e) {
   BrowserErrorCollector.onUnLoad(e);
 }, false);

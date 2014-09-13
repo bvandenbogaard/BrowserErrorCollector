@@ -24,7 +24,6 @@ Only requests that produce status code with 400 or higher are reported.
     responseStatus: 404,
     responseStatusText: "Not Found",
     requestMethod: "GET",
-    spec: "http://localhost/invalid.png",
     referrer: "http://localhost/"
 }`
 
@@ -35,7 +34,7 @@ Only requests that produce status code with 400 or higher are reported.
     errorMessage: "",
     sourceName: "script.js",
     lineNumber: 1,
-    console: console
+    URI: "http://localhost/"
 }`
 	
 ## Thanks
